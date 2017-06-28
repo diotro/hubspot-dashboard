@@ -7,6 +7,7 @@ library(plyr)
 library(tidyr)
 library(dplyr)
 library(jsonlite)
+library(RMySQL)
 
 ########################   Additional files:   ######################
 # credentials.R loads the hapikey (hapikey <- $YOURHAPIKEY)
@@ -56,12 +57,7 @@ jsonParse <- function(request) {
 #
 # return         : POSIXct : a date object
 parseTimeStamp <- function(timeStamp) {
-  timeStamp %>% 
-    as.character %>% 
-  as.numeric %>% 
-  divide_by(1000) %>%  
-  anytime %>% 
-  as.Date
+  timeStamp %>% divide_by(1000) %>% as.POSIXct(origin="1970-01-01")
 }
 
 
@@ -109,7 +105,7 @@ processEmailEvent <- function(event) {
     x
   }
   out <- replaceNullWithNA(c(event$id,
-    parseTimeStamp(event$created),              
+    event$created,              
     event$appName,
     event$type,
     event$recipient,
@@ -139,8 +135,10 @@ while (batch$hasMore) {
 }
 
 eventsDF <- as.data.frame(eventsDF, stringsAsFactors = FALSE)
-eventsDF$Created <- as.Date(as.numeric(eventsDF$Created), origin = "1970-01-01")
+
 colnames(eventsDF) <- c("ID", "Created", "AppName", "Type", "Recipient", "CampaignID", "Status", "Sender")
+
+# Process types: We care about outbound vs inbound "SENT"
 eventsDF$Type <- apply(eventsDF, 1, function(x) {
   if(!(x[4] %in% "SENT")) { x[4] }
   else if (str_detect(x[5], "gouconnect.com")) {
@@ -148,5 +146,6 @@ eventsDF$Type <- apply(eventsDF, 1, function(x) {
   } else { "SENT"}
 })
 
+eventsDF$Created <- parseTimeStamp(eventsDF$Created)
 
-
+save(eventsDF, file="events")
