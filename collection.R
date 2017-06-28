@@ -61,6 +61,7 @@ parseTimeStamp <- function(timeStamp) {
 
 ##########################   Contacts:   ############################
 
+allContactProperties <- hubspotGet("/properties/v1/contacts/properties?")
 allContacts <- vector(mode="list", length=100000)
 
 listIndex <- 1
@@ -156,7 +157,7 @@ campaignDF$AppID <- str_replace(campaignDF$AppID, "\\s","")
 
 parseCampaign <- function(campaign) {
   # To avoid getting rate-limited
-  Sys.sleep(.1)
+  Sys.sleep(.08)
   
   campaign <- hubspotGet(str_c("/email/public/v1/campaigns/", campaign[1],
                                "?appId=", campaign[2], "&"))
@@ -168,14 +169,13 @@ campaignDF <- campaignDF %>% adply(1, parseCampaign)
 
 #########################    Companies    ############################
 
-
 allCompanies <- vector(mode="list", length=0)
 offset <- 1
 repeat {
   request <- hubspotGet("/companies/v2/companies/paged?",
                         str_c("properties=notes_last_contacted",
                               "&properties=csm_system",
-                              "properties=contact_listing_link",
+                              "&properties=contact_listing_link",
                               "&limit=250&offset=", offset))
   companies <- request$companies
   cs <- sapply(seq_len(nrow(companies)), function(i) {companies[i,]})
@@ -183,24 +183,40 @@ repeat {
   
   offset <- request$offset
   
-  print(length(allCompanies) / 6)
   
   if (!request$`has-more`) {
+    print("ALL COMPANIES RECIEVED")
     break;
   }
+  print(str_c(length(allCompanies) / 6, " COMPANIES RECIEVED"))
 }
 
 allCompanies <- matrix(allCompanies, ncol=6, byrow=TRUE)
 
-allCompanies <- unnest(unnest(as.data.frame(allCompanies[, 1:4])))
+leftoverdata <- allCompanies[, 5:6]
+
+allCompanies <- unnest(as.data.frame(allCompanies[, 1:4])) %>%
+  unnest(.[, 1:5])
 
 colnames(allCompanies) <- c("portalid", "companyid", "isDeleted",
                             "timeSinceContacted", "csmSystem")
 
 
-allContactProperties <- hubspotGet("/properties/v1/contacts/properties?")
+
 allCompanyProperties <- hubspotGet("/properties/v1/companies/properties?")
 
+
+
+vids <- vector(mode="character", length=nrow(allCompanies))
+for (i in seq_len(nrow(allCompanies))) {
+  try(vids[i] <- hubspotGet(str_c("companies/v2/companies/", allCompanies[i, 2], "/vids?"))$vids[1])
+  # To prevent rate-limits
+  Sys.sleep(.05)
+}
+
+vids <- as.vector(vids, mode="character")
+
+allCompanies <- cbind(allCompanies, vids)
 
 # Deals in nurture, CSM system + time since last touched 
 # first, last, email of primary contact
@@ -222,7 +238,7 @@ repeat {
   allDeals <- rbind(allDeals, deals)
                    
 
-  
+  print(str_c(length(allDeals), " DEALS RECIEVED"))
   offset <- request$offset
   if (!request$hasMore) {
     break;
@@ -250,6 +266,11 @@ associatedDeals <- data.frame(cID = vector(mode="character", length=nrow(allComp
                               dID = vector(mode="character", length=nrow(allCompanies)),
                               stringsAsFactors = FALSE)
 
+contactsAndCompanies <- data.frame(contactID = vector(mode="character", length=nrow(allCompanies)),
+                              companyID = vector(mode="character", length=nrow(allCompanies)),
+                              stringsAsFactors = FALSE)
+
+
 for (i in seq_along(allCompanies$companyid)) {
   cid <- allCompanies$companyid[i]
   did <- hubspotGet(str_c("/deals/v1/deal/associated/company/", cid, "/paged?"),
@@ -258,26 +279,24 @@ for (i in seq_along(allCompanies$companyid)) {
 }
 
 
+for (i in seq_along(allCompanies$companyid)) {
+  companyid <- allCompanies$companyid[i]
+  contactid <- allCompanies$vids[i]
+  contactsAndCompanies[i, ] <- c(companyid, contactid)
+}
+
 
 nurtureDeals <- allDeals %>% filter (dealstage == "nurture") %>% .$dealID
 
 nurtureAssoc <- associatedDeals[which(associatedDeals$dID %in% nurtureDeals),]
 
-allCompanies[sapply(nurtureAssoc$cID, 
+idleCompanies <- allCompanies[sapply(nurtureAssoc$cID, 
                  function(cid) {which(cid == allCompanies$companyid)}), ] %>%
   filter(parseTimeStamp(timeSinceContacted) < as.POSIXct("2017-03-01"))
       
-emails <- sapply(allContacts, function(x) {str_extract(str_extract(x$`identity-profiles`, "(?<=\\\").*?@.*?\\..*?(?=\")"), "[A-z0-9]*?@[A-z0-9]*?.[A-z0-9]*?$")}) 
-vids <- sapply(allContacts, function(x) {x$vid})       
+emails <- sapply(allContacts, function(x) {str_extract(str_extract(x$`identity-profiles`,
+                                                                   "(?<=\\\").*?@.*?\\..*?(?=\")"), "[A-z0-9]*?@[A-z0-9]*?.[A-z0-9]*?$")}) 
 
 
-vids <- vector(mode="character", length=nrow(allCompanies))
-for (i in seq_len(nrow(allCompanies))) {
-  try(vids[i] <- hubspotGet(str_c("companies/v2/companies/", allCompanies[i, 2], "/vids?"))$vids[1])
-}
+nurtureAssoc$cID
 
-emails[sapply(vids, function(x) {x %in% goodVids})]
-       
-       
-       
-       
