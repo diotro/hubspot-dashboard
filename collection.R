@@ -1,4 +1,5 @@
 ############################   Packages:   ##########################
+
 library(anytime)
 library(stringr)
 library(magrittr)
@@ -7,12 +8,14 @@ library(plyr)
 library(tidyr)
 library(dplyr)
 library(jsonlite)
-library(RMySQL)
+
 
 ########################   Additional files:   ######################
+
 # credentials.R loads the hapikey (hapikey <- $YOURHAPIKEY)
 setwd("~/Documents/uConnect/hubspot-dashboard")
 source("credentials.R")
+
 
 #######################   Utility functions:   ######################
 
@@ -57,7 +60,8 @@ jsonParse <- function(request) {
 #
 # return         : POSIXct : a date object
 parseTimeStamp <- function(timeStamp) {
-  timeStamp %>% divide_by(1000) %>% as.POSIXct(origin="1970-01-01")
+  timeStamp %>% as.numeric %>% divide_by(1000) %>% 
+    as.POSIXct(origin="1970-01-01")
 }
 
 
@@ -80,7 +84,7 @@ collection.R to scrape all of them.')
   
   parseCampaign <- function(campaign) {
     # To avoid getting rate-limited
-    Sys.sleep(.08)
+    Sys.sleep(.05)
     
     campaign <- hubspotGet(str_c("/email/public/v1/campaigns/", campaign[1],
                                  "?appId=", campaign[2], "&"))
@@ -105,13 +109,13 @@ processEmailEvent <- function(event) {
     x
   }
   out <- replaceNullWithNA(c(event$id,
-    event$created,              
-    event$appName,
-    event$type,
-    event$recipient,
-    event$emailCampaignId,
-    event$status,
-    event$from))
+                             event$created,              
+                             event$appName,
+                             event$type,
+                             event$recipient,
+                             event$emailCampaignId,
+                             event$status,
+                             event$from))
   length(out) <- 8
   out
 }
@@ -136,7 +140,8 @@ while (batch$hasMore) {
 
 eventsDF <- as.data.frame(eventsDF, stringsAsFactors = FALSE)
 
-colnames(eventsDF) <- c("ID", "Created", "AppName", "Type", "Recipient", "CampaignID", "Status", "Sender")
+colnames(eventsDF) <- c("ID", "Created", "AppName", "Type", 
+                        "Recipient", "CampaignID", "Status", "Sender")
 
 # Process types: We care about outbound vs inbound "SENT"
 eventsDF$Type <- apply(eventsDF, 1, function(x) {
@@ -147,5 +152,69 @@ eventsDF$Type <- apply(eventsDF, 1, function(x) {
 })
 
 eventsDF$Created <- parseTimeStamp(eventsDF$Created)
+eventsDF$Date <- as.Date(eventsDF$Created)
 
-save(eventsDF, file="events")
+save(eventsDF, file="campaigns/data/events")
+save(campaignDF, file="campaigns/data/campaigns")
+
+
+#########################   Engagements    ###########################
+
+offset <- 1
+engagementDFcolnames <-  c("ID", "PortalID", "Active", "Created", 
+                           "Updated", "OwnerID", "Type", "Timestamp")
+engagementDF <- matrix(nrow=0,ncol=length(engagementDFcolnames))
+repeat {
+  batch <- hubspotGet("/engagements/v1/engagements/paged?",
+                      str_c("&offset=", offset,
+                            "&limit=", 250))
+  processedBatch <- batch$results$engagement %>% 
+    select(matches("^(id|portalId|active|createdAt|lastUpdated|ownerID|type|timestamp)$"))
+  processedBatch$ContactID <- sapply(batch$results$associations$contactIds,
+                                     function(x)
+                                       tryCatch(x[[1]], error=function(e) NA))
+  engagementDF %<>% rbind(processedBatch)
+  offset <- batch$offset
+  if (nrow(engagementDF) %% 1000 == 0) {
+    print(str_c(nrow(engagementDF), " ENGAGEMENTS PROCESSED"))
+  }
+  if (!batch$hasMore) {
+    break
+  }
+}
+
+contacts <- unique(eventsDF$Recipient)
+n <- length(contacts)
+VID = integer(n)
+CanonicalVID = integer(n)
+Email = character(n)
+Company = character(n)
+CompanyID = integer(n)
+for(i in seq_len(n)) {
+  try({
+  onFailNA <- function(x) tryCatch(x, error=function(e) NA)
+  contact <- hubspotGet(str_c("/contacts/v1/contact/email/", contacts[i],"/profile?"))
+  
+  onFailNA(VID[i] <-  contact$vid)
+  onFailNA(CanonicalVID[i] <-  contact$`canonical-vid`)
+  onFailNA(Email[i] <-  contact$properties$email$value)
+  onFailNA(Company[i] <-  contact$`associated-company`$properties$name$value)
+  onFailNA(CompanyID[i] <-  contact$properties$associatedcompanyid$value)
+  
+  })
+  if (i %% 1000 == 0) {
+    print(str_c(i, " CONTACTS PROCESSED"))
+  }
+  Sys.sleep(.05)
+}
+
+contactsDF <- data.frame(VID, CanonicalVID, Email, Company, CompanyID)
+rm(VID, CanonicalVID, Email, Company, CompanyID)
+save(contactsDF, file="campaigns/data/contacts")
+
+
+colnames(engagementDF) <- engagementDFcolnames
+engagementDF$Created <- parseTimeStamp(engagementDF$Created)
+engagementDF$Date <- as.Date(engagementDF$Created)
+
+save(engagementDF, file="campaigns/data/engagement")

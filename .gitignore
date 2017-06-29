@@ -1,3 +1,6 @@
+# Data files
+Data/
+
 # History files
 .Rhistory
 .Rapp.history
@@ -31,3 +34,9 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+
+# Folder information
+.DS_STORE
+
+# Things that should stay private
+credentials.R

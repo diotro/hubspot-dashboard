@@ -1,0 +1,1 @@
+Hubspot's reporting dashboard sucks. So, I'm going to create a new one -- starting with a robust data collection process, storing the data as R binaries, and making a shiny app. Once the app is running, I'll modify the data collection process to only query hubspot for changes, to avoid getting rate-limited for larger companies.
