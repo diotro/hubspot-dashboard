@@ -1,5 +1,3 @@
-library(shiny)
-library(plotly)
 
 
 loadData <- function() {
@@ -11,7 +9,7 @@ loadData <- function() {
 
 loadData() 
 
-shinyUI(fluidPage(
+fluidPage(
   titlePanel("Campaign Performance"),
   
   sidebarLayout(
@@ -24,9 +22,11 @@ shinyUI(fluidPage(
       plotlyOutput("emailsBar"),
       HTML("<br><br><br>"),
       fillRow(textOutput("sent"),
-      textOutput("opens"),
-      textOutput("clicks"),
-      textOutput("replies"))
+              textOutput("opens"),
+              textOutput("clicks"),
+              textOutput("replies")),
+      HTML("<br><br><br>"),
+      plotlyOutput("activityGraph")
     )
   )
-))
+)

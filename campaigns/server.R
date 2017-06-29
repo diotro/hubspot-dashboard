@@ -1,19 +1,26 @@
-library(shiny)
-library(plotly)
-library(ggplot2)
-library(scales)
-library(stringr)
+loadData <- function() {
+  inputDir <- "campaigns/data"
+  # Read all the files into a list
+  files <- list.files(inputDir, full.names = TRUE)
+  # Load every file in the list into the global environment
+  sapply(files, load, envir=.GlobalEnv)
+}
 
+loadData() 
 
 shinyServer(function(input, output) {
-  dat <<- filterData(input, output)
-  campaignID <- getCampaignID(input, output)
+  if (!exists("eventsDF")) {
+    loadData() 
+  }
+  events <<- filterEvents(input, output)
+  campaignID <<- getCampaignID(input, output)
   contactsInSequence <<- getContactsInSequence(input, output)
   includeSequencePerformance(input, output)
   includeSequencePerformanceOverTime(input, output)
+  includeSequenceActivity(input, output)
 })  
 
-filterData <- function(input, output) {
+filterEvents <- function(input, output) {
   reactive({
     dateStart <- input$dateRange[1]
     dateEnd <- input$dateRange[2]
@@ -32,31 +39,30 @@ getCampaignID <- function(input, output) {
 
 getContactsInSequence <- function(input, output) {
   reactive({
-    campaignDF$ID[campaignDF$name %in% input$campaignName]
+    contactsDF$VID[which(contactsDF$VID %in% events()$RecipientID)]
   })
 }
 
 includeSequencePerformance <- function(input, output) {
+  countType <- function(type, atgouconnect=FALSE) {
+    events() %>% 
+      filter(Type == type,
+             str_detect(Recipient,"@gouconnect\\.com") == atgouconnect) %>%
+      nrow
+  }
   output$sent <- 
-    renderText(paste("Sent: ", 
-                     nrow(dat() %>% filter(Type == "SENT",
-                                           !str_detect(Recipient,"@gouconnect\\.com")))))
+    renderText(paste("Sent: ", countType("SENT")))
   output$opens <- 
-    renderText(paste("Opens: ", 
-                     nrow(dat() %>% filter(Type == "OPEN",
-                                           !str_detect(Recipient,"@gouconnect\\.com")))))
+    renderText(paste("Opens: ", countType("OPEN")))
   output$clicks <- 
-    renderText(paste("Clicks: ", 
-                     nrow(dat() %>% filter(Type == "CLICK",
-                                           !str_detect(Recipient,"@gouconnect\\.com")))))
+    renderText(paste("Clicks: ", countType("CLICK")))
   output$replies <-
-    renderText(paste("Replies: ", 
-                     nrow(dat() %>% filter(Type == "REPLY"))))
+    renderText(paste("Replies: ", countType("REPLY", atgouconnect=TRUE)))
 }
 
 includeSequencePerformanceOverTime <- function(input, output) {
   output$emailsBar <- renderPlotly({
-    summary <- dat() %>%
+    summary <- events() %>%
       group_by(Date, Type) %>%
       summarize(n())
     
@@ -67,29 +73,30 @@ includeSequencePerformanceOverTime <- function(input, output) {
       labs(title = str_c(input$campaignName, " Performance")) +
              xlab("Date") + ylab("Number of Events") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black"),
-            plot.margin = margin(10, 10, 10, 10))
+            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+      scale_y_continuous(expand = c(0,0))
     ggplotly(p)
     })
 }
 
 includeSequenceActivity <- function(input, output) {
-  engagementDF %>% 
-    filter(engagementDF$ContactID %in% contactsInSequence())
-  output$sequenceActivity <- renderPlotly({
-    summary <- dat() %>%
-      group_by(createdAt, type) %>%
+  output$activityGraph <- renderPlotly({
+    
+    summary <- engagementDF %>% 
+      filter(Type %in% c("CALL", "MEETING", "TASK"),
+             ContactID %in% events()$RecipientID) %>%
+      group_by(Date, Type) %>%
       summarize(n())
     
     colnames(summary) <- c("Date", "Type", "Count")
     p <- 
       ggplot(data=summary) +
-      geom_col(aes(x=Date, y=Count, fill=Type)) +
-      labs(title = str_c(input$campaignName, " Performance")) +
+      geom_col(aes(x=Date, y=Count, color=Type, fill=Type)) +
+      labs(title = str_c(input$campaignName, " Activity")) +
       xlab("Date") + ylab("Number of Events") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black"),
-            plot.margin = margin(10, 10, 10, 10))
+            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+      scale_y_continuous(expand = c(0,0))
     ggplotly(p)
   })
 }

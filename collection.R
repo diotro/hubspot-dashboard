@@ -8,6 +8,10 @@ library(plyr)
 library(tidyr)
 library(dplyr)
 library(jsonlite)
+library(shiny)
+library(plotly)
+library(ggplot2)
+library(scales)
 
 
 ########################   Additional files:   ######################
@@ -66,6 +70,9 @@ parseTimeStamp <- function(timeStamp) {
 
 
 
+
+
+
 ############################   Emails    ##############################
 
 getCampaigns <- function() {
@@ -99,9 +106,6 @@ collection.R to scrape all of them.')
 }
 
 campaignDF <- getCampaigns()
-
-
-
 
 processEmailEvent <- function(event) {
   replaceNullWithNA <- function(x) {
@@ -142,27 +146,51 @@ eventsDF <- as.data.frame(eventsDF, stringsAsFactors = FALSE)
 
 colnames(eventsDF) <- c("ID", "Created", "AppName", "Type", 
                         "Recipient", "CampaignID", "Status", "Sender")
-
-# Process types: We care about outbound vs inbound "SENT"
-eventsDF$Type <- apply(eventsDF, 1, function(x) {
-  if(!(x[4] %in% "SENT")) { x[4] }
-  else if (str_detect(x[5], "gouconnect.com")) {
-    "REPLY"
-  } else { "SENT"}
-})
-
 eventsDF$Created <- parseTimeStamp(eventsDF$Created)
 eventsDF$Date <- as.Date(eventsDF$Created)
+eventsDF$Recipient %<>% sapply(function(x) {
+  if (str_detect(x, "<.*?>")) {str_extract(x, "(?<=<).*(?=>)")} else {x}})
 
-save(eventsDF, file="campaigns/data/events")
-save(campaignDF, file="campaigns/data/campaigns")
+
+###########################   Contacts    ##############################
+
+contacts <- unique(eventsDF$Recipient)
+n <- length(contacts)
+VID = integer(n)
+CanonicalVID = integer(n)
+Email = character(n)
+Company = character(n)
+CompanyID = integer(n)
+for(i in seq_len(n)) {
+  try({
+    onFailNA <- function(x) tryCatch(x, error=function(e) NA)
+    contact <- hubspotGet(str_c("/contacts/v1/contact/email/", contacts[i],"/profile?"))
+    
+    onFailNA(VID[i] <-  contact$vid)
+    onFailNA(CanonicalVID[i] <-  contact$`canonical-vid`)
+    onFailNA(Email[i] <-  contact$properties$email$value)
+    onFailNA(Company[i] <-  contact$`associated-company`$properties$name$value)
+    onFailNA(CompanyID[i] <-  contact$properties$associatedcompanyid$value)
+    
+  })
+  if (i %% 100 == 0) {
+    print(str_c(i, " CONTACTS PROCESSED"))
+  }
+  Sys.sleep(.03)
+}
+
+contactsDF <- data.frame(VID, CanonicalVID, Email, Company, CompanyID)
+rm(VID, CanonicalVID, Email, Company, CompanyID)
+eventsDF$RecipientID <- sapply(eventsDF$Recipient, function(x) {
+  contactsDF$CanonicalVID[which(contactsDF$Email == x)]
+})
 
 
 #########################   Engagements    ###########################
 
 offset <- 1
 engagementDFcolnames <-  c("ID", "PortalID", "Active", "Created", 
-                           "Updated", "OwnerID", "Type", "Timestamp")
+                           "Updated", "OwnerID", "Type", "Timestamp", "ContactID")
 engagementDF <- matrix(nrow=0,ncol=length(engagementDFcolnames))
 repeat {
   batch <- hubspotGet("/engagements/v1/engagements/paged?",
@@ -183,38 +211,15 @@ repeat {
   }
 }
 
-contacts <- unique(eventsDF$Recipient)
-n <- length(contacts)
-VID = integer(n)
-CanonicalVID = integer(n)
-Email = character(n)
-Company = character(n)
-CompanyID = integer(n)
-for(i in seq_len(n)) {
-  try({
-  onFailNA <- function(x) tryCatch(x, error=function(e) NA)
-  contact <- hubspotGet(str_c("/contacts/v1/contact/email/", contacts[i],"/profile?"))
-  
-  onFailNA(VID[i] <-  contact$vid)
-  onFailNA(CanonicalVID[i] <-  contact$`canonical-vid`)
-  onFailNA(Email[i] <-  contact$properties$email$value)
-  onFailNA(Company[i] <-  contact$`associated-company`$properties$name$value)
-  onFailNA(CompanyID[i] <-  contact$properties$associatedcompanyid$value)
-  
-  })
-  if (i %% 1000 == 0) {
-    print(str_c(i, " CONTACTS PROCESSED"))
-  }
-  Sys.sleep(.05)
-}
-
-contactsDF <- data.frame(VID, CanonicalVID, Email, Company, CompanyID)
-rm(VID, CanonicalVID, Email, Company, CompanyID)
-save(contactsDF, file="campaigns/data/contacts")
-
 
 colnames(engagementDF) <- engagementDFcolnames
 engagementDF$Created <- parseTimeStamp(engagementDF$Created)
 engagementDF$Date <- as.Date(engagementDF$Created)
 
+
+
 save(engagementDF, file="campaigns/data/engagement")
+save(eventsDF, file="campaigns/data/events")
+save(campaignDF, file="campaigns/data/campaigns")
+save(contactsDF, file="campaigns/data/contacts")
+
