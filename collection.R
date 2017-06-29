@@ -1,4 +1,4 @@
-############################   Packages:   ##########################
+############################   PACKAGES   ##########################
 
 library(anytime)
 library(stringr)
@@ -8,20 +8,16 @@ library(plyr)
 library(tidyr)
 library(dplyr)
 library(jsonlite)
-library(shiny)
-library(plotly)
-library(ggplot2)
-library(scales)
 
 
-########################   Additional files:   ######################
+#############################   FILES   #############################
 
 # credentials.R loads the hapikey (hapikey <- $YOURHAPIKEY)
 setwd("~/Documents/uConnect/hubspot-dashboard")
 source("credentials.R")
 
 
-#######################   Utility functions:   ######################
+########################   UTILITY FUNCTIONS   #######################
 
 # hubspotGet : Given a partial hubspot api url and paramaters,
 #  makes a request and parses to JSON
@@ -73,7 +69,7 @@ parseTimeStamp <- function(timeStamp) {
 
 
 
-############################   Emails    ##############################
+##############################   EMAILS    ###############################
 
 getCampaigns <- function() {
   # No loop because there's only one page, so it's important to make it
@@ -150,9 +146,10 @@ eventsDF$Created <- parseTimeStamp(eventsDF$Created)
 eventsDF$Date <- as.Date(eventsDF$Created)
 eventsDF$Recipient %<>% sapply(function(x) {
   if (str_detect(x, "<.*?>")) {str_extract(x, "(?<=<).*(?=>)")} else {x}})
+eventsDF$Type <- ifelse(str_detect(eventsDF$Recipient, "@gouconnect\\.com"),
+                        "REPLY", eventsDF$Type)
 
-
-###########################   Contacts    ##############################
+#############################   CONTACTS    ##############################
 
 contacts <- unique(eventsDF$Recipient)
 n <- length(contacts)
@@ -186,7 +183,7 @@ eventsDF$RecipientID <- sapply(eventsDF$Recipient, function(x) {
 })
 
 
-#########################   Engagements    ###########################
+#############################   TIMELINE    ##############################
 
 offset <- 1
 engagementDFcolnames <-  c("ID", "PortalID", "Active", "Created", 
@@ -216,10 +213,25 @@ colnames(engagementDF) <- engagementDFcolnames
 engagementDF$Created <- parseTimeStamp(engagementDF$Created)
 engagementDF$Date <- as.Date(engagementDF$Created)
 
+###############################  OWNERS ################################
 
+batch <- hubspotGet("/owners/v2/owners?")
+ownersDF <- as.data.frame(batch %>% select(-remoteList))
 
-save(engagementDF, file="campaigns/data/engagement")
-save(eventsDF, file="campaigns/data/events")
-save(campaignDF, file="campaigns/data/campaigns")
-save(contactsDF, file="campaigns/data/contacts")
+getOwnerFirstName <- function(ownerID) {
+    name <- ownersDF$firstName[which(ownersDF$ownerId == ownerID)]
+    if (length(name))
+      name
+    else
+      NA
+}
 
+engagementDF$OwnerName <- sapply(engagementDF$OwnerID, getOwnerFirstName)
+
+############################### STORAGE ################################
+
+save(engagementDF, file="data/engagement")
+save(eventsDF, file="data/events")
+save(campaignDF, file="data/campaigns")
+save(contactsDF, file="data/contacts")
+save(ownersDF, file="data/owners")

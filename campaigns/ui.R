@@ -1,15 +1,16 @@
 
 
 loadData <- function() {
-  inputDir <- "campaigns/data"
+  inputDir <- "../data"
   # Read all the files into a list
   files <- list.files(inputDir, full.names = TRUE)
-  sapply(files, load, envir=.GlobalEnv)
+  lapply(files, load, envir=.GlobalEnv)
 }
 
-loadData() 
 
+loadData() 
 fluidPage(
+  
   titlePanel("Campaign Performance"),
   
   sidebarLayout(
@@ -25,6 +26,7 @@ fluidPage(
               textOutput("opens"),
               textOutput("clicks"),
               textOutput("replies")),
+      textOutput("data"),
       HTML("<br><br><br>"),
       plotlyOutput("activityGraph")
     )

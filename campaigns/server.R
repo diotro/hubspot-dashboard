@@ -1,17 +1,9 @@
-loadData <- function() {
-  inputDir <- "campaigns/data"
-  # Read all the files into a list
-  files <- list.files(inputDir, full.names = TRUE)
-  # Load every file in the list into the global environment
-  sapply(files, load, envir=.GlobalEnv)
-}
-
-loadData() 
+library(shiny)
+library(plotly)
+library(ggplot2)
+library(scales)
 
 shinyServer(function(input, output) {
-  if (!exists("eventsDF")) {
-    loadData() 
-  }
   events <<- filterEvents(input, output)
   campaignID <<- getCampaignID(input, output)
   contactsInSequence <<- getContactsInSequence(input, output)
@@ -22,12 +14,15 @@ shinyServer(function(input, output) {
 
 filterEvents <- function(input, output) {
   reactive({
-    dateStart <- input$dateRange[1]
-    dateEnd <- input$dateRange[2]
-    eventsDF %>% 
+    dateStart <<- input$dateRange[1]
+    dateEnd <<- input$dateRange[2]
+    dat <- eventsDF %>% 
       filter(CampaignID == campaignID(),
              Date > dateStart, Date < dateEnd,
              Type %in% c("SENT", "CLICK", "OPEN", "REPLY"))
+    
+    dateStart <<- min(dat$Date)
+    dat
   })
 }
 
@@ -71,7 +66,7 @@ includeSequencePerformanceOverTime <- function(input, output) {
       ggplot(data=summary) +
       geom_col(aes(x=Date, y=Count, fill=Type)) +
       labs(title = str_c(input$campaignName, " Performance")) +
-             xlab("Date") + ylab("Number of Events") +
+             labs(x="Date", y="Number of Events", fill="") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
             panel.background = element_blank(), axis.line = element_line(colour = "black")) +
       scale_y_continuous(expand = c(0,0))
@@ -84,16 +79,17 @@ includeSequenceActivity <- function(input, output) {
     
     summary <- engagementDF %>% 
       filter(Type %in% c("CALL", "MEETING", "TASK"),
-             ContactID %in% events()$RecipientID) %>%
+             ContactID %in% events()$RecipientID,
+             Date > dateStart) %>%
       group_by(Date, Type) %>%
       summarize(n())
     
     colnames(summary) <- c("Date", "Type", "Count")
     p <- 
       ggplot(data=summary) +
-      geom_col(aes(x=Date, y=Count, color=Type, fill=Type)) +
+      geom_col(aes(x=Date, y=Count, fill=Type)) +
       labs(title = str_c(input$campaignName, " Activity")) +
-      xlab("Date") + ylab("Number of Events") +
+      labs(x="Date", y="Number of Events", fill="") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
             panel.background = element_blank(), axis.line = element_line(colour = "black")) +
       scale_y_continuous(expand = c(0,0))
