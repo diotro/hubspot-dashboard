@@ -1,5 +1,5 @@
 loadData <- function() {
-  inputDir <- "../data"
+  inputDir <- "data"
   # Read all the files into a list
   files <- list.files(inputDir, full.names = TRUE)
   lapply(files, load, envir=.GlobalEnv)

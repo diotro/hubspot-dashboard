@@ -1,7 +1,14 @@
 library(shiny)
+library(plyr)
+library(tidyr)
 library(plotly)
 library(ggplot2)
+library(magrittr)
 library(scales)
+library(stringr)
+library(tidyr)
+library(dplyr)
+
 
 shinyServer(function(input, output) {
   events <<- filterEvents(input, output)
@@ -59,7 +66,7 @@ includeSequencePerformanceOverTime <- function(input, output) {
   output$emailsBar <- renderPlotly({
     summary <- events() %>%
       group_by(Date, Type) %>%
-      summarize(n())
+      dplyr::summarize(n())
     
     colnames(summary) <- c("Date", "Type", "Count")
     p <- 
@@ -77,12 +84,12 @@ includeSequencePerformanceOverTime <- function(input, output) {
 includeSequenceActivity <- function(input, output) {
   output$activityGraph <- renderPlotly({
     
-    summary <- engagementDF %>% 
+    summary <- (engagementDF %>% 
       filter(Type %in% c("CALL", "MEETING", "TASK"),
              ContactID %in% events()$RecipientID,
              Date > dateStart) %>%
       group_by(Date, Type) %>%
-      summarize(n())
+      dplyr::summarize(n()))
     
     colnames(summary) <- c("Date", "Type", "Count")
     p <- 

@@ -1,4 +1,6 @@
 library(plotly)
+library(ggplot2)
+library(dplyr)
 library(magrittr)
 library(reshape2)
 
@@ -43,7 +45,7 @@ includeActivityOverTime <- function(input, output) {
       p <- ggplot(data=dat, aes_string(x = "Date", y = "Count", fill = eval(fill))) +
         geom_col(position = "stack", stat="identity") + 
         theme_bw()
-      ggplotly(p, width=AUTO, height=AUTO)
+      ggplotly(p)
     }
   })
 }
