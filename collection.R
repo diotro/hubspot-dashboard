@@ -13,7 +13,6 @@ library(jsonlite)
 #############################   FILES   #############################
 
 # credentials.R loads the hapikey (hapikey <- $YOURHAPIKEY)
-setwd("~/Documents/uConnect/hubspot-dashboard")
 source("credentials.R")
 
 
