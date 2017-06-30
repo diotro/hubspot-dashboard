@@ -1,9 +1,3 @@
-library(plotly)
-library(ggplot2)
-library(dplyr)
-library(magrittr)
-library(reshape2)
-
 shinyServer(function(input, output, session) {
   values <- reactive({reactiveValues(people = input$people, type=input$types)})
   

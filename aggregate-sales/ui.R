@@ -1,3 +1,14 @@
+library(shiny)
+library(plyr)
+library(tidyr)
+library(plotly)
+library(ggplot2)
+library(magrittr)
+library(scales)
+library(stringr)
+library(tidyr)
+library(dplyr)
+
 loadData <- function() {
   inputDir <- "data"
   # Read all the files into a list
