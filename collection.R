@@ -1,3 +1,5 @@
+#!/usr/bin/Rscript
+
 ############################   PACKAGES   ##########################
 
 library(anytime)
