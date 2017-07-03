@@ -75,7 +75,7 @@ includeSequencePerformanceOverTime <- function(input, output) {
       geom_col(position = "stack", aes(x=Date, y=Count, fill=Type)) +
       facet_wrap( ~ Name) +
       labs(x="Date", y="Number of Events", fill="")
-    ggplotly(p, width = 1200)
+    ggplotly(p)
     })
 }
 

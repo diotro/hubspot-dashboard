@@ -29,15 +29,14 @@ fluidPage(
       dateRangeInput("dateRange", "Date Range", start="2017-01-01")
     ),
     mainPanel(
-      plotlyOutput("emailsBar"),
-      HTML("<br><br><br><br><br><br><br><br>"),
+      plotlyOutput("emailsBar", inline = TRUE),
       fillRow(textOutput("sent"),
               textOutput("opens"),
               textOutput("clicks"),
               textOutput("replies")),
       textOutput("data"),
       HTML("<br><br><br>"),
-      plotlyOutput("activityGraph")
+      plotlyOutput("activityGraph", inline = TRUE)
     )
   )
 )
