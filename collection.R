@@ -1,24 +1,44 @@
 #!/usr/bin/Rscript
+#####################################################################################
+#
+#          FILE: collection.R
+#
+#         USAGE: R -f collection.R
+#
+#   DESCRIPTION: Collects data from Hubspot's API for use in dashboarding with Shiny
+#
+#       OPTIONS: ---
+#  REQUIREMENTS: R >3.3.0, jsonlite 1.5, dplyr 0.7.1, tidyr 0.6.3, plyr 1.8.4, httr 1.2.1,
+#                magrittr 1.5, stringr 1.2, anytime 1.2.0
+#          BUGS: ---
+#         NOTES: ---
+#        AUTHOR: Julian Zucker, julian.zucker@gmail.com
+#  ORGANIZATION: uConnect
+#       CREATED: 29 June 2017
+#      REVISION: 4 July 2017
+#          TODO: 
+# 
+#####################################################################################
 
-############################   PACKAGES   ##########################
+################################   PACKAGES   ##############################
 
-library(anytime)
-library(stringr)
-library(magrittr)
-library(httr)
-library(plyr)
-library(tidyr)
-library(dplyr)
-library(jsonlite)
+if (!require("anytime"))  { install.packages("anytime")  }
+if (!require("stringr"))  { install.packages("stringr")  }
+if (!require("magrittr")) { install.packages("magrittr") }
+if (!require("httr"))     { install.packages("httr")     }
+if (!require("plyr"))     { install.packages("plyr")     }
+if (!require("tidyr"))    { install.packages("tidyr")    }
+if (!require("dplyr"))    { install.packages("dplyr")    }
+if (!require("jsonlite")) { install.packages("jsonlite") }
 
 
-#############################   FILES   #############################
+#################################   FILES   #################################
 
 # credentials.R loads the hapikey (hapikey <- $YOURHAPIKEY)
 source("credentials.R")
 
 
-########################   UTILITY FUNCTIONS   #######################
+###########################   UTILITY FUNCTIONS   ###########################
 
 # hubspotGet : Given a partial hubspot api url and paramaters,
 #  makes a request and parses to JSON
@@ -64,8 +84,6 @@ parseTimeStamp <- function(timeStamp) {
   timeStamp %>% as.numeric %>% divide_by(1000) %>% 
     as.POSIXct(origin="1970-01-01")
 }
-
-
 
 
 
