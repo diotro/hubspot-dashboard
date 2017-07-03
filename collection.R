@@ -167,6 +167,8 @@ eventsDF$Recipient %<>% sapply(function(x) {
   if (str_detect(x, "<.*?>")) {str_extract(x, "(?<=<).*(?=>)")} else {x}})
 eventsDF$Type <- ifelse(str_detect(eventsDF$Recipient, "@gouconnect\\.com"),
                         "REPLY", eventsDF$Type)
+campaignDF$name %<>% as.character()
+
 
 #############################   CONTACTS    ##############################
 

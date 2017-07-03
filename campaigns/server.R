@@ -48,8 +48,7 @@ getContactsInSequence <- function(input, output) {
 includeSequencePerformance <- function(input, output) {
   countType <- function(type, atgouconnect=FALSE) {
     events() %>% 
-      filter(Type == type,
-             str_detect(Recipient,"@gouconnect\\.com") == atgouconnect) %>%
+      filter(Type == type) %>%
       nrow
   }
   output$sent <- 
@@ -59,25 +58,24 @@ includeSequencePerformance <- function(input, output) {
   output$clicks <- 
     renderText(paste("Clicks: ", countType("CLICK")))
   output$replies <-
-    renderText(paste("Replies: ", countType("REPLY", atgouconnect=TRUE)))
+    renderText(paste("Replies: ", countType("REPLY")))
 }
 
 includeSequencePerformanceOverTime <- function(input, output) {
   output$emailsBar <- renderPlotly({
     summary <- events() %>%
-      group_by(Date, Type) %>%
+      mutate(Name = sapply(.$CampaignID, function(x) {
+                           campaignDF$name[which(campaignDF$ID == x)[1]]})) %>%
+      group_by(Date, Type, Name) %>%
       dplyr::summarize(n())
     
-    colnames(summary) <- c("Date", "Type", "Count")
+    colnames(summary) <- c("Date", "Type", "Name", "Count")
     p <- 
       ggplot(data=summary) +
-      geom_col(aes(x=Date, y=Count, fill=Type)) +
-      labs(title = str_c(input$campaignName, " Performance")) +
-             labs(x="Date", y="Number of Events", fill="") +
-      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-      scale_y_continuous(expand = c(0,0))
-    ggplotly(p)
+      geom_col(position = "stack", aes(x=Date, y=Count, fill=Type)) +
+      facet_wrap( ~ Name) +
+      labs(x="Date", y="Number of Events", fill="")
+    ggplotly(p, width = 1200)
     })
 }
 
