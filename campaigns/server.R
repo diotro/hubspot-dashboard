@@ -8,6 +8,7 @@ library(scales)
 library(stringr)
 library(tidyr)
 library(dplyr)
+library(wesanderson)
 
 
 shinyServer(function(input, output) {
@@ -76,8 +77,8 @@ includeSequencePerformanceOverTime <- function(input, output) {
       facet_wrap( ~ Name) +
       labs(x="Date", y="Number of Events", fill="") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black"))
-      
+            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+      scale_fill_manual(values = wes_palette("Moonrise3"))
     ggplotly(p)
     })
 }
@@ -99,7 +100,8 @@ includeSequenceActivity <- function(input, output) {
       labs(title = str_c(input$campaignName, " Activity")) +
       labs(x="Date", y="Number of Events", fill="") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black"))
+            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+      scale_fill_manual(values = wes_palette("Moonrise3"))
     ggplotly(p)
   })
 }

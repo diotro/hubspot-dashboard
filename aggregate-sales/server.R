@@ -1,3 +1,5 @@
+library(wesanderson)
+
 shinyServer(function(input, output, session) {
   values <- reactive({reactiveValues(people = input$people, type=input$types)})
   
@@ -28,6 +30,7 @@ includeActivityOverTime <- function(input, output) {
       p <- ggplot(data=dat, aes(x = Date, y = Count, fill = Type)) +
         geom_col(position = "stack", stat = "identity") +
         facet_wrap( ~ Owner) +
+        scale_fill_manual(values = wes_palette("Moonrise2", type="discrete")) +
         theme_bw()
     } else {
       # If either input has length one, fill by group
@@ -37,7 +40,8 @@ includeActivityOverTime <- function(input, output) {
         fill <- "Type"
       }
       p <- ggplot(data=dat, aes_string(x = "Date", y = "Count", fill = eval(fill))) +
-        geom_col(position = "stack", stat="identity") + 
+        geom_col(position = "stack") + 
+        scale_fill_manual(values = wes_palette("Moonrise2", type="discrete")) +
         theme_bw()
       ggplotly(p)
     }

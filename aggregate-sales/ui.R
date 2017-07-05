@@ -8,6 +8,7 @@ library(scales)
 library(stringr)
 library(tidyr)
 library(dplyr)
+library(wesanderson)
 
 loadData <- function() {
   inputDir <- "data"
