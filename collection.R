@@ -22,14 +22,22 @@
 
 ################################   PACKAGES   ##############################
 
-if (!require("anytime"))  { install.packages("anytime")  }
-if (!require("stringr"))  { install.packages("stringr")  }
-if (!require("magrittr")) { install.packages("magrittr") }
-if (!require("httr"))     { install.packages("httr")     }
-if (!require("plyr"))     { install.packages("plyr")     }
-if (!require("tidyr"))    { install.packages("tidyr")    }
-if (!require("dplyr"))    { install.packages("dplyr")    }
-if (!require("jsonlite")) { install.packages("jsonlite") }
+if (!require("anytime"))  { 
+  install.packages("anytime", repos = "https://cloud.r-project.org")  }
+if (!require("stringr"))  { 
+  install.packages("stringr", repos = "https://cloud.r-project.org")  }
+if (!require("magrittr")) { 
+  install.packages("magrittr", repos = "https://cloud.r-project.org") }
+if (!require("httr"))     { 
+  install.packages("httr", repos = "https://cloud.r-project.org")     }
+if (!require("plyr"))     { 
+  install.packages("plyr", repos = "https://cloud.r-project.org")     }
+if (!require("tidyr"))    { 
+  install.packages("tidyr", repos = "https://cloud.r-project.org")    }
+if (!require("dplyr"))    { 
+  install.packages("dplyr", repos = "https://cloud.r-project.org")    }
+if (!require("jsonlite")) { 
+  install.packages("jsonlite", repos = "https://cloud.r-project.org") }
 
 
 #################################   FILES   #################################
