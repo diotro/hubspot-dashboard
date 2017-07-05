@@ -76,9 +76,8 @@ includeSequencePerformanceOverTime <- function(input, output) {
       facet_wrap( ~ Name) +
       labs(x="Date", y="Number of Events", fill="") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-      scale_y_continuous(expand = c(0,0))
-    
+            panel.background = element_blank(), axis.line = element_line(colour = "black"))
+      
     ggplotly(p)
     })
 }
@@ -100,8 +99,7 @@ includeSequenceActivity <- function(input, output) {
       labs(title = str_c(input$campaignName, " Activity")) +
       labs(x="Date", y="Number of Events", fill="") +
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-      scale_y_continuous(expand = c(0,0))
+            panel.background = element_blank(), axis.line = element_line(colour = "black"))
     ggplotly(p)
   })
 }
