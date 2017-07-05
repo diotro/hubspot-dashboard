@@ -25,17 +25,17 @@ fluidPage(
   sidebarLayout(
     sidebarPanel(
       selectInput("campaignName", "Campaign", 
-                  choices=campaignDF %>% filter(sent > 20) %>% use_series(name), multiple=TRUE),
+                  choices=campaignDF %>% filter(sent > 20) %>% use_series(name), 
+                  selected=(campaignDF %>% filter(sent > 20) %>% use_series(name))[1], multiple=TRUE),
       dateRangeInput("dateRange", "Date Range", start="2017-01-01")
     ),
     mainPanel(
-      plotlyOutput("emailsBar", inline = TRUE),
       fillRow(textOutput("sent"),
               textOutput("opens"),
               textOutput("clicks"),
               textOutput("replies")),
-      textOutput("data"),
-      HTML("<br><br><br>"),
+      plotlyOutput("emailsBar", inline = FALSE),
+      HTML("<br><br><br><br><br><br><br><br><br>"),
       plotlyOutput("activityGraph", inline = TRUE)
     )
   )

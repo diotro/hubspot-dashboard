@@ -74,7 +74,11 @@ includeSequencePerformanceOverTime <- function(input, output) {
       ggplot(data=summary) +
       geom_col(position = "stack", aes(x=Date, y=Count, fill=Type)) +
       facet_wrap( ~ Name) +
-      labs(x="Date", y="Number of Events", fill="")
+      labs(x="Date", y="Number of Events", fill="") +
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+            panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+      scale_y_continuous(expand = c(0,0))
+    
     ggplotly(p)
     })
 }
