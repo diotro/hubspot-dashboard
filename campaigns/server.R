@@ -46,7 +46,7 @@ getContactsInSequence <- function(input, output) {
 }
 
 includeSequencePerformance <- function(input, output) {
-  countType <- function(type, atgouconnect=FALSE) {
+  countType <- function(type) {
     events() %>% 
       filter(Type == type) %>%
       nrow
