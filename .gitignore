@@ -1,5 +1,5 @@
 # Data file
-data/
+**/data/
 
 # History files
 .Rhistory
